@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { HARF_NOTLARI } from '../utils/agno'
+
 function Kayitlar({
   ogrenciler,
   dersler,
@@ -8,6 +10,7 @@ function Kayitlar({
   setYeniKayit,
   kayitEkle,
   kayitSil,
+  notGuncelle,
   yukleniyor,
   hata,
   kullanici
@@ -536,6 +539,22 @@ function Kayitlar({
 
 
                     {adminMi && (
+                      <div className="mt-3 flex items-center justify-between bg-slate-50 rounded-xl p-3">
+
+                        <p className="text-xs text-slate-400">
+                          Harf Notu
+                        </p>
+
+                        <NotSecici
+                          kayit={kayit}
+                          notGuncelle={notGuncelle}
+                        />
+
+                      </div>
+                    )}
+
+
+                    {adminMi && (
                       <button
                         type="button"
                         onClick={() =>
@@ -601,6 +620,12 @@ function Kayitlar({
                   <th className="text-left font-semibold px-6 py-4">
                     Ders Kodu
                   </th>
+
+                  {adminMi && (
+                    <th className="text-left font-semibold px-6 py-4">
+                      Not
+                    </th>
+                  )}
 
                   {adminMi && (
                     <th className="text-right font-semibold px-6 py-4">
@@ -684,6 +709,17 @@ function Kayitlar({
                           </span>
 
                         </td>
+
+                        {adminMi && (
+                          <td className="px-6 py-5">
+
+                            <NotSecici
+                              kayit={kayit}
+                              notGuncelle={notGuncelle}
+                            />
+
+                          </td>
+                        )}
 
                         {adminMi && (
                           <td className="px-6 py-5">
@@ -782,6 +818,47 @@ function Kayitlar({
       )}
 
     </div>
+  )
+}
+
+// ==========================================
+// HARF NOTU SEÇİCİ (ADMIN)
+// ==========================================
+
+function NotSecici({ kayit, notGuncelle }) {
+  return (
+    <select
+      value={kayit.harfNotu ?? ''}
+      onChange={(e) =>
+        notGuncelle(
+          kayit.ogrenciId,
+          kayit.dersId,
+          e.target.value
+        )
+      }
+      className="
+        border
+        border-slate-300
+        rounded-lg
+        px-3
+        py-2
+        bg-white
+        text-sm
+        font-semibold
+        outline-none
+        focus:border-violet-500
+      "
+    >
+      <option value="">
+        Devam
+      </option>
+
+      {HARF_NOTLARI.map((n) => (
+        <option key={n.harf} value={n.harf}>
+          {n.harf}
+        </option>
+      ))}
+    </select>
   )
 }
 

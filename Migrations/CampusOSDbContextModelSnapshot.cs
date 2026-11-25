@@ -60,6 +60,10 @@ namespace CampusOS.Migrations
                     b.Property<int>("DersId")
                         .HasColumnType("int");
 
+                    b.Property<string>("HarfNotu")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
                     b.Property<int>("OgrenciId")
                         .HasColumnType("int");
 
@@ -90,6 +94,9 @@ namespace CampusOS.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int?>("OgrenciId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Rol")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -107,6 +114,10 @@ namespace CampusOS.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("OgrenciId")
+                        .IsUnique()
+                        .HasFilter("[OgrenciId] IS NOT NULL");
 
                     b.ToTable("Kullanicilar");
                 });
@@ -156,6 +167,14 @@ namespace CampusOS.Migrations
                     b.Navigation("Ders");
 
                     b.Navigation("Ogrenci");
+                });
+
+            modelBuilder.Entity("CampusOS.Models.Kullanici", b =>
+                {
+                    b.HasOne("CampusOS.Models.Ogrenci", null)
+                        .WithMany()
+                        .HasForeignKey("OgrenciId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 #pragma warning restore 612, 618
         }

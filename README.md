@@ -58,6 +58,15 @@ Admins can:
 
 Duplicate course enrollments are prevented at the database level.
 
+### 🎯 Grades & AGNO (GPA)
+
+- Admins enter letter grades (AA–FF, 4.00 scale) for each enrollment
+- Admins link student user accounts to student profiles
+- Students see their own AGNO, completed / ongoing credits and course grades
+- **Target AGNO calculator:** shows the average (and minimum letter grade) needed in the remaining credits to reach a target AGNO, or tells you if it is impossible / already guaranteed
+- **Grade simulation:** pick expected grades for ongoing courses and see the projected AGNO
+- Grades are private: students can only see their own grades
+
 ### 📊 Dashboard
 
 The dashboard provides an overview of the CampusOS system, including:
@@ -171,6 +180,9 @@ CampusOS currently supports two roles.
 | View Enrollments | ✅ | ✅ |
 | Create Enrollment | ✅ | ❌ |
 | Remove Enrollment | ✅ | ❌ |
+| Enter Grades | ✅ | ❌ |
+| View AGNO | ✅ (all students) | ✅ (own only) |
+| Link Account to Student | ✅ | ❌ |
 
 Authorization is enforced by the backend API, not only by the frontend interface.
 
@@ -299,10 +311,8 @@ Screenshots of the following pages can be added here:
 
 Possible future improvements include:
 
-- Linking user accounts directly to student profiles
 - Allowing students to view only their own courses
-- Grade management
-- GPA calculation
+- Course retakes (repeat grades)
 - Attendance tracking
 - Academic calendar
 - Notifications

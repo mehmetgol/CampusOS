@@ -111,6 +111,33 @@ public bool DersVarMi(int dersId)
 
 
     // ==========================
+    // HARF NOTU GÜNCELLE
+    // harfNotu null => notu temizle
+    // ==========================
+
+    public Kayit? NotGuncelle(
+        int ogrenciId,
+        int dersId,
+        string? harfNotu)
+    {
+        var kayit = _context.Kayitlar
+            .FirstOrDefault(k =>
+                k.OgrenciId == ogrenciId &&
+                k.DersId == dersId);
+
+        if (kayit == null)
+        {
+            return null;
+        }
+
+        kayit.HarfNotu = harfNotu;
+        _context.SaveChanges();
+
+        return kayit;
+    }
+
+
+    // ==========================
     // ÖĞRENCİYİ DERSTEN ÇIKAR
     // ==========================
 

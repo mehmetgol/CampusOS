@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 using CampusOS.Data;
 using CampusOS.Models;
 
@@ -102,6 +103,7 @@ builder.Services.AddScoped<OgrenciService>();
 builder.Services.AddScoped<DersService>();
 builder.Services.AddScoped<KayitService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<AgnoService>();
 
 
 var app = builder.Build();
@@ -248,7 +250,8 @@ app.MapPost("/auth/login", (
             kullanici.Ad,
             kullanici.Soyad,
             kullanici.Email,
-            kullanici.Rol
+            kullanici.Rol,
+            kullanici.OgrenciId
         }
     });
 });
@@ -644,12 +647,29 @@ app.MapDelete("/dersler/{id}", (
 // ==========================
 
 app.MapGet("/kayitlar", (
+    ClaimsPrincipal user,
     KayitService service) =>
 {
     var kayitlar =
         service.GetAll();
 
-    return Results.Ok(kayitlar);
+    // Harf notları kişisel veridir:
+    // sadece Admin tüm notları görür.
+    if (user.IsInRole("Admin"))
+    {
+        return Results.Ok(kayitlar);
+    }
+
+    return Results.Ok(
+        kayitlar.Select(k => new
+        {
+            k.Id,
+            k.OgrenciId,
+            k.DersId,
+            k.Ogrenci,
+            k.Ders
+        })
+    );
 })
 .RequireAuthorization();
 
@@ -763,6 +783,235 @@ app.MapDelete("/kayitlar", (
     return Results.Ok(
         "Öğrenci dersten çıkarıldı."
     );
+})
+.RequireAuthorization(policy =>
+    policy.RequireRole("Admin")
+);
+
+
+// ======================================================
+// NOT & AGNO ENDPOINTLERİ
+// ======================================================
+
+
+// ==========================
+// PUT - KAYDA HARF NOTU GİR
+// SADECE ADMIN
+// ==========================
+
+app.MapPut("/kayitlar/not", (
+    int ogrenciId,
+    int dersId,
+    NotGuncelleRequest request,
+    KayitService service) =>
+{
+    var harfNotu =
+        string.IsNullOrWhiteSpace(request.HarfNotu)
+            ? null
+            : request.HarfNotu.Trim().ToUpperInvariant();
+
+    if (harfNotu != null &&
+        !AgnoService.GecerliNotMu(harfNotu))
+    {
+        return Results.BadRequest(
+            "Geçersiz harf notu. Geçerli notlar: " +
+            string.Join(", ", AgnoService.NotKatsayilari.Keys)
+        );
+    }
+
+    var kayit =
+        service.NotGuncelle(
+            ogrenciId,
+            dersId,
+            harfNotu
+        );
+
+    if (kayit == null)
+    {
+        return Results.NotFound(
+            "Öğrencinin bu derse ait kaydı bulunamadı."
+        );
+    }
+
+    return Results.Ok(new
+    {
+        kayit.Id,
+        kayit.OgrenciId,
+        kayit.DersId,
+        kayit.HarfNotu
+    });
+})
+.RequireAuthorization(policy =>
+    policy.RequireRole("Admin")
+);
+
+
+// ==========================
+// GET - ÖĞRENCİNİN AGNO ÖZETİ
+// ADMIN veya ÖĞRENCİNİN KENDİSİ
+// ==========================
+
+app.MapGet("/ogrenciler/{id}/agno", (
+    int id,
+    ClaimsPrincipal user,
+    AgnoService service) =>
+{
+    if (!user.IsInRole("Admin"))
+    {
+        var kullaniciIdMetni =
+            user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!int.TryParse(kullaniciIdMetni, out var kullaniciId) ||
+            service.BagliOgrenciId(kullaniciId) != id)
+        {
+            return Results.Forbid();
+        }
+    }
+
+    var ozet =
+        service.Hesapla(id);
+
+    if (ozet == null)
+    {
+        return Results.NotFound(
+            "Öğrenci bulunamadı."
+        );
+    }
+
+    return Results.Ok(ozet);
+})
+.RequireAuthorization();
+
+
+// ==========================
+// GET - GİRİŞ YAPANIN AGNO'SU
+// GİRİŞ ZORUNLU
+// ==========================
+
+app.MapGet("/benim/agno", (
+    ClaimsPrincipal user,
+    AgnoService service) =>
+{
+    var kullaniciIdMetni =
+        user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    if (!int.TryParse(kullaniciIdMetni, out var kullaniciId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var ogrenciId =
+        service.BagliOgrenciId(kullaniciId);
+
+    if (ogrenciId == null)
+    {
+        return Results.NotFound(
+            "Hesabınız henüz bir öğrenci profiline bağlanmamış. " +
+            "Lütfen yöneticiyle iletişime geçin."
+        );
+    }
+
+    var ozet =
+        service.Hesapla(ogrenciId.Value);
+
+    if (ozet == null)
+    {
+        return Results.NotFound(
+            "Öğrenci bulunamadı."
+        );
+    }
+
+    return Results.Ok(ozet);
+})
+.RequireAuthorization();
+
+
+// ======================================================
+// KULLANICI ENDPOINTLERİ
+// ======================================================
+
+
+// ==========================
+// GET - TÜM KULLANICILAR
+// SADECE ADMIN
+// ==========================
+
+app.MapGet("/kullanicilar", (
+    CampusOSDbContext context) =>
+{
+    var kullanicilar = context.Kullanicilar
+        .OrderBy(k => k.Ad)
+        .Select(k => new
+        {
+            k.Id,
+            k.Ad,
+            k.Soyad,
+            k.Email,
+            k.Rol,
+            k.OgrenciId
+        })
+        .ToList();
+
+    return Results.Ok(kullanicilar);
+})
+.RequireAuthorization(policy =>
+    policy.RequireRole("Admin")
+);
+
+
+// ==========================
+// PUT - HESABI ÖĞRENCİYE BAĞLA
+// SADECE ADMIN
+// ==========================
+
+app.MapPut("/kullanicilar/{id}/ogrenci", (
+    int id,
+    OgrenciBaglaRequest request,
+    CampusOSDbContext context) =>
+{
+    var kullanici = context.Kullanicilar
+        .FirstOrDefault(k => k.Id == id);
+
+    if (kullanici == null)
+    {
+        return Results.NotFound(
+            "Kullanıcı bulunamadı."
+        );
+    }
+
+    if (request.OgrenciId != null)
+    {
+        var ogrenciVarMi = context.Ogrenciler
+            .Any(o => o.Id == request.OgrenciId);
+
+        if (!ogrenciVarMi)
+        {
+            return Results.NotFound(
+                "Öğrenci bulunamadı."
+            );
+        }
+
+        var baskaHesabaBagliMi = context.Kullanicilar
+            .Any(k =>
+                k.Id != id &&
+                k.OgrenciId == request.OgrenciId);
+
+        if (baskaHesabaBagliMi)
+        {
+            return Results.BadRequest(
+                "Bu öğrenci zaten başka bir hesaba bağlı."
+            );
+        }
+    }
+
+    kullanici.OgrenciId = request.OgrenciId;
+    context.SaveChanges();
+
+    return Results.Ok(new
+    {
+        kullanici.Id,
+        kullanici.OgrenciId
+    });
 })
 .RequireAuthorization(policy =>
     policy.RequireRole("Admin")

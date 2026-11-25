@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Ogrenciler from './pages/Ogrenciler'
 import Dersler from './pages/Dersler'
 import Kayitlar from './pages/Kayitlar'
+import Agno from './pages/Agno'
 import Login from './pages/Login'
 import Register from './pages/Register'
 
@@ -1124,6 +1125,70 @@ function App() {
 
 
   // ==========================================
+  // HARF NOTU GÜNCELLE (ADMIN)
+  // harfNotu '' => notu temizle
+  // ==========================================
+
+  const notGuncelle = async (
+    ogrenciId,
+    dersId,
+    harfNotu
+  ) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/kayitlar/not?ogrenciId=${ogrenciId}&dersId=${dersId}`,
+        {
+          method: 'PUT',
+          headers: authHeaders(true),
+          body: JSON.stringify({
+            harfNotu: harfNotu || null
+          })
+        }
+      )
+
+      if (response.status === 401) {
+        cikisYap()
+        return
+      }
+
+      if (response.status === 403) {
+        alert(
+          'Bu işlem sadece Admin tarafından yapılabilir.'
+        )
+        return
+      }
+
+      if (!response.ok) {
+        alert(await response.text())
+        return
+      }
+
+      const guncel =
+        await response.json()
+
+      setKayitlar((onceki) =>
+        onceki.map((kayit) =>
+          kayit.ogrenciId === ogrenciId &&
+          kayit.dersId === dersId
+            ? {
+                ...kayit,
+                harfNotu: guncel.harfNotu
+              }
+            : kayit
+        )
+      )
+
+    } catch (error) {
+      console.error(error)
+
+      alert(
+        'Not kaydedilirken bağlantı hatası oluştu.'
+      )
+    }
+  }
+
+
+  // ==========================================
   // LOGIN / REGISTER
   // ==========================================
 
@@ -1347,6 +1412,10 @@ function App() {
               kayitSil
             }
 
+            notGuncelle={
+              notGuncelle
+            }
+
             yukleniyor={
               yukleniyor
             }
@@ -1358,6 +1427,21 @@ function App() {
             kullanici={
               kullanici
             }
+          />
+        )}
+
+
+        {/* ==========================
+            AGNO
+        ========================== */}
+
+        {sayfa === 'agno' && (
+          <Agno
+            apiUrl={API_URL}
+            token={token}
+            kullanici={kullanici}
+            ogrenciler={ogrenciler}
+            cikisYap={cikisYap}
           />
         )}
 

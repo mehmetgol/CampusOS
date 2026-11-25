@@ -46,6 +46,10 @@ public class CampusOSDbContext : DbContext
             })
             .IsUnique();
 
+        modelBuilder.Entity<Kayit>()
+            .Property(k => k.HarfNotu)
+            .HasMaxLength(2);
+
         // ==========================================
         // KULLANICI
         // ==========================================
@@ -61,5 +65,18 @@ public class CampusOSDbContext : DbContext
         modelBuilder.Entity<Kullanici>()
             .Property(k => k.Rol)
             .HasMaxLength(30);
+
+        // Kullanıcı hesabı -> öğrenci profili (opsiyonel).
+        // Öğrenci silinirse bağlantı NULL olur, hesap kalır.
+        modelBuilder.Entity<Kullanici>()
+            .HasOne<Ogrenci>()
+            .WithMany()
+            .HasForeignKey(k => k.OgrenciId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Bir öğrenci profili en fazla bir hesaba bağlanabilir.
+        modelBuilder.Entity<Kullanici>()
+            .HasIndex(k => k.OgrenciId)
+            .IsUnique();
     }
 }

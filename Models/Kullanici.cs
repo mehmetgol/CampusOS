@@ -13,4 +13,8 @@ public class Kullanici
     public string SifreHash { get; set; } = string.Empty;
 
     public string Rol { get; set; } = "Ogrenci";
+
+    // Bu hesaba bağlı öğrenci profili (Admin eşleştirir).
+    // Öğrenci rolündeki kullanıcı kendi AGNO'sunu buradan görür.
+    public int? OgrenciId { get; set; }
 }

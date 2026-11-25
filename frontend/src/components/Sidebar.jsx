@@ -27,6 +27,11 @@ function Sidebar({
       id: 'kayitlar',
       ad: 'Kayıtlar',
       ikon: '📝'
+    },
+    {
+      id: 'agno',
+      ad: 'AGNO',
+      ikon: '🎯'
     }
   ]
 
